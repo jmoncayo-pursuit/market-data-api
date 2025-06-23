@@ -328,14 +328,14 @@ class TestMarketDataSchemas:
         timestamp = datetime.now()
         data = {
             "symbol": "AAPL",
-            "value": 155.5,
+            "moving_average": 155.5,
             "timestamp": timestamp,
             "window_size": 10,
         }
         schema = MovingAverageResponse(**data)
 
         assert schema.symbol == "AAPL"
-        assert schema.value == 155.5
+        assert schema.moving_average == 155.5
         assert schema.timestamp == timestamp
         assert schema.window_size == 10
 
