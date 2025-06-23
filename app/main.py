@@ -338,8 +338,16 @@ async def get_prices(
         raise HTTPException(status_code=500, detail="Error retrieving prices")
 
 
-@app.exception_handler((DataError, IntegrityError))
-async def sqlalchemy_exception_handler(request: Request, exc):
+@app.exception_handler(DataError)
+async def sqlalchemy_data_error_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": f"Invalid input data: {str(exc)}"},
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def sqlalchemy_integrity_error_handler(request: Request, exc):
     return JSONResponse(
         status_code=422,
         content={"detail": f"Invalid input data: {str(exc)}"},
