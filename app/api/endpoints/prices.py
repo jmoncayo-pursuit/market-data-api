@@ -500,11 +500,11 @@ async def get_moving_average(
             logger.warning(f"No data for moving average: {symbol}, window={window}")
             raise HTTPException(
                 status_code=404,
-                detail=f"Insufficient data for moving average calculation for symbol {symbol}",
+                detail=f"No data found for symbol {symbol}",
             )
         return {
             "symbol": symbol,
-            "value": result,
+            "moving_average": result,
             "window_size": window,
             "timestamp": datetime.now().isoformat(),
         }
