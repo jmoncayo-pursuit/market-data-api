@@ -185,7 +185,7 @@ class TestInputValidation:
             "source": "test"
         }
         
-        response = client.post("/api/v1/prices/", json=valid_data, headers={"X-API-Key": "test-key"})
+        response = client.post("/api/v1/prices/", json=valid_data, headers={"Authorization": "Bearer demo-api-key-123"})
         # Should either succeed (201) or fail with validation error (422), but never 500
         assert response.status_code in [201, 422], f"Expected 201 or 422, got {response.status_code}"
         
@@ -197,7 +197,7 @@ class TestInputValidation:
             "source": "test"
         }
         
-        response = client.post("/api/v1/prices/", json=invalid_data, headers={"X-API-Key": "test-key"})
+        response = client.post("/api/v1/prices/", json=invalid_data, headers={"Authorization": "Bearer demo-api-key-123"})
         # Should fail with validation error, not database error
         assert response.status_code == 422, f"Expected 422 for oversize symbol, got {response.status_code}"
         # Only check for the Pydantic error message
@@ -214,7 +214,7 @@ class TestInputValidation:
             "source": "test"
         }
         
-        response = client.post("/api/v1/prices/", json=extremely_long_data, headers={"X-API-Key": "test-key"})
+        response = client.post("/api/v1/prices/", json=extremely_long_data, headers={"Authorization": "Bearer demo-api-key-123"})
         # Should fail with validation error, never 500
         assert response.status_code == 422, f"Expected 422 for extremely long symbol, got {response.status_code}"
         assert (
@@ -242,7 +242,7 @@ class TestInputValidation:
                 "source": "test"
             }
             
-            response = client.post("/api/v1/prices/", json=data, headers={"X-API-Key": "test-key"})
+            response = client.post("/api/v1/prices/", json=data, headers={"Authorization": "Bearer demo-api-key-123"})
             # Should return 422 for database constraint violations, not 500
             assert response.status_code == 422, f"Expected 422 for database error, got {response.status_code}"
             assert "Invalid input data" in response.text
