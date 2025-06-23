@@ -157,7 +157,7 @@ async def test_redis_service_connection_error():
     from app.services.redis_service import RedisService
 
     service = RedisService()
-    service.redis = None  # Force no connection
+    service.set_test_mode(True)  # Enable test mode to prevent reconnection
     
     # Test fallback behavior when Redis is not available
     assert await service.get_cached_price("AAPL") is None

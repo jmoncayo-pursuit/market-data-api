@@ -21,11 +21,16 @@ class RedisService:
         """Initialize Redis service without immediate connection."""
         self.redis: Optional[Redis] = None
         self._lock = asyncio.Lock()
+        self._test_mode = False  # Flag to prevent reconnection in tests
         # Don't connect immediately - connect lazily when needed
 
     async def _get_redis_client(self) -> Optional[Redis]:
         """Get the Redis client, creating it if it doesn't exist."""
         async with self._lock:
+            # If in test mode and redis is None, don't try to reconnect
+            if self._test_mode and self.redis is None:
+                return None
+                
             if self.redis is None:
                 try:
                     self.redis = Redis.from_url(
@@ -343,3 +348,9 @@ class RedisService:
         except Exception as e:
             self._log_error("Redis err", e)
             return False
+
+    def set_test_mode(self, enabled: bool = True) -> None:
+        """Set test mode to prevent reconnection attempts."""
+        self._test_mode = enabled
+        if enabled:
+            self.redis = None  # Clear any existing connection

@@ -169,7 +169,7 @@ class TestRedisServiceConsistency:
     async def test_redis_service_connection_error_returns_false(self):
         """Test Redis service returns False when Redis is unavailable."""
         service = RedisService()
-        service.redis = None  # Force no connection
+        service.set_test_mode(True)  # Enable test mode to prevent reconnection
         
         # All methods should return False/None when Redis is unavailable
         assert await service.get_cached_price("AAPL") is None
