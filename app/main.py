@@ -83,6 +83,7 @@ app = FastAPI(
     description="Market Data Service API - Secure and Production Ready",
     version="1.0.0",
     lifespan=lifespan,
+    debug=settings.DEBUG,
 )
 
 # Add security middleware
@@ -91,18 +92,19 @@ app.add_middleware(
     allowed_hosts=["*"],  # In production, specify actual allowed hosts
 )
 
-# Add CORS middleware with more restrictive settings
+# Add CORS middleware with dynamic settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
     max_age=3600,
 )
 
 # Include routers
-app.include_router(prices.router, prefix="/api/v1/prices", tags=["prices"])
+app.include_router(prices.router, prefix=settings.API_V1_STR + "/prices", tags=["prices"])
+app.include_router(prices.router, prefix="/prices", tags=["prices"])
 
 
 @app.get("/")
@@ -113,7 +115,7 @@ async def root() -> Dict[str, str]:
     Returns:
         Welcome message
     """
-    return {"message": "Welcome to the Market Data Service API"}
+    return {"message": f"Welcome to the {settings.PROJECT_NAME} API"}
 
 
 @app.get("/health")
@@ -144,7 +146,7 @@ async def readiness_check() -> Dict[str, str]:
         db.execute(text("SELECT 1"))
         db.close()
 
-        return {"status": "ready"}
+        return {"status": "ready", "service": settings.PROJECT_NAME}
     except Exception as e:
         logger.error(f"Readiness check failed: {e}")
         raise HTTPException(status_code=503, detail="Service not ready")
@@ -158,6 +160,9 @@ async def metrics() -> Response:
     Returns:
         Application metrics in Prometheus format
     """
+    if not settings.PROMETHEUS_ENABLED:
+        raise HTTPException(status_code=404, detail="Metrics endpoint disabled")
+    
     # Return metrics in Prometheus format
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
@@ -190,6 +195,7 @@ async def get_symbols(
 @app.get("/moving-average/{symbol}")
 async def get_moving_average(
     symbol: str,
+    window: int = Query(settings.MOVING_AVERAGE_WINDOW, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: str = Depends(require_read_permission),
 ) -> Dict:
@@ -198,6 +204,7 @@ async def get_moving_average(
 
     Args:
         symbol: Symbol to get moving average for
+        window: Window size for moving average calculation
         db: Database session
         current_user: Authenticated user
 
@@ -205,16 +212,16 @@ async def get_moving_average(
         Moving average data
     """
     try:
-        ma = MarketDataService.calculate_moving_average(db, symbol)
-        if ma is None:
+        moving_average = MarketDataService.calculate_moving_average(db, symbol, window)
+        if moving_average is None:
             raise HTTPException(
                 status_code=404,
-                detail=f"No data found for symbol {symbol}",
+                detail=f"No data available for symbol {symbol}",
             )
         return {
             "symbol": symbol,
-            "moving_average": ma,
-            "timestamp": MarketDataService.get_latest_timestamp(db, symbol),
+            "moving_average": moving_average,
+            "window": window,
         }
     except HTTPException:
         raise

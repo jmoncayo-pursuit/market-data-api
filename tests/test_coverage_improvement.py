@@ -846,7 +846,7 @@ class TestAPICoverage:
     def test_get_latest_price_database_error(self):
         """Test getting latest price with database error."""
         with patch(
-            "app.api.endpoints.prices.MarketDataService.get_latest_market_data"
+            "app.api.endpoints.prices.MarketDataService.get_latest_price_static"
         ) as mock_get:
             mock_get.side_effect = Exception("Database error")
 
@@ -857,4 +857,4 @@ class TestAPICoverage:
             )
 
             assert response.status_code == 500
-            assert "Error retrieving latest price" in response.json()["detail"]
+            assert "Internal server error" in response.json()["detail"]

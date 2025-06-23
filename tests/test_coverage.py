@@ -50,6 +50,7 @@ def test_timestamp_mixin():
 # Test RedisService with mocks
 @patch("app.services.redis_service.settings")
 @patch("app.services.redis_service.Redis", autospec=True)
+@pytest.mark.asyncio
 async def test_redis_service(mock_redis, mock_settings):
     """Test RedisService with mocked Redis connection."""
     mock_settings.REDIS_URL = "redis://localhost:6379/0"
@@ -84,6 +85,15 @@ async def test_redis_service(mock_redis, mock_settings):
     assert await service.get_all_prices() == {"BTC": 123.45}
     assert await service.clear_prices()
     assert isinstance(await service.get_price_history("BTC"), list)
+
+    # Test connection
+    redis = await service._get_redis_client()
+    if redis:
+        assert await redis.ping()
+    else:
+        # If Redis is not available, test fallback behavior
+        assert await service.get_cached_price("AAPL") is None
+        assert await service.cache_price("AAPL", 150.0) is False
 
 
 # Test KafkaService with mocks

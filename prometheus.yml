@@ -1,10 +1,57 @@
 global:
-  scrape_interval: 15s
-  evaluation_interval: 15s
+  scrape_interval: ${PROMETHEUS_SCRAPE_INTERVAL:-15s}
+  evaluation_interval: ${PROMETHEUS_EVALUATION_INTERVAL:-15s}
+  external_labels:
+    cluster: ${PROMETHEUS_CLUSTER:-market-data-api}
+    environment: ${PROMETHEUS_ENVIRONMENT:-development}
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
 
 scrape_configs:
   - job_name: "market_data_api"
     static_configs:
-      # Use 'api:8000' for Docker Compose networking
-      - targets: ["api:8000"]
+      - targets: ["${API_HOST:-api}:${API_PORT:-8000}"]
     metrics_path: "/metrics"
+    scrape_interval: ${API_SCRAPE_INTERVAL:-15s}
+    scrape_timeout: ${API_SCRAPE_TIMEOUT:-10s}
+    honor_labels: true
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(?::\d+)?'
+        replacement: '${1}'
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:${PROMETHEUS_PORT:-9090}"]
+    scrape_interval: ${PROMETHEUS_SELF_SCRAPE_INTERVAL:-15s}
+
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["${POSTGRES_HOST:-db}:${POSTGRES_PORT:-5432}"]
+    scrape_interval: ${POSTGRES_SCRAPE_INTERVAL:-30s}
+    metrics_path: "/metrics"
+
+  - job_name: "redis"
+    static_configs:
+      - targets: ["${REDIS_HOST:-redis}:${REDIS_PORT:-6379}"]
+    scrape_interval: ${REDIS_SCRAPE_INTERVAL:-30s}
+    metrics_path: "/metrics"
+
+  - job_name: "kafka"
+    static_configs:
+      - targets: ["${KAFKA_HOST:-kafka}:${KAFKA_PORT:-9092}"]
+    scrape_interval: ${KAFKA_SCRAPE_INTERVAL:-30s}
+    metrics_path: "/metrics"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "alert_rules.yml"

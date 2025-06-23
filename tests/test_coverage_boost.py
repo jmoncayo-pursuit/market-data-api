@@ -134,7 +134,7 @@ def test_symbols_endpoint_empty(monkeypatch):
 def test_moving_average_404(monkeypatch):
     client = TestClient(app)
     monkeypatch.setattr(
-        MarketDataService, "calculate_moving_average", lambda db, symbol: None
+        MarketDataService, "calculate_moving_average", lambda db, symbol, window: None
     )
     from app.core import auth
 
@@ -151,21 +151,36 @@ def test_404():
 
 
 # Redis Service additional tests
+@pytest.mark.asyncio
 async def test_redis_service_connection_error():
+    """Test Redis service connection error handling."""
+    from app.services.redis_service import RedisService
+
     service = RedisService()
-    with patch.object(service, "_get_redis_client") as mock_get_client:
-        mock_get_client.side_effect = Exception("Connection failed")
-        info = await service.get_connection_info()
-        assert info["status"] == "error"
+    service.redis = None  # Force no connection
+    
+    # Test fallback behavior when Redis is not available
+    assert await service.get_cached_price("AAPL") is None
+    assert await service.cache_price("AAPL", 150.0) is False
+    assert await service.get_price("AAPL") is None
 
 
+@pytest.mark.asyncio
 async def test_redis_service_healthy_connection():
+    """Test Redis service with healthy connection."""
+    from app.services.redis_service import RedisService
+    from unittest.mock import AsyncMock
+
     service = RedisService()
-    mock_client = MagicMock()
-    mock_client.ping.return_value = True
-    with patch.object(service, "_get_redis_client", return_value=mock_client):
-        info = await service.get_connection_info()
-        assert info["status"] == "connected"
+    mock_redis = AsyncMock()
+    mock_redis.ping.return_value = True
+    mock_redis.get.return_value = "150.0"
+    mock_redis.setex.return_value = True
+    service.redis = mock_redis
+    
+    # Test successful operations
+    assert await service.get_cached_price("AAPL") == 150.0
+    assert await service.cache_price("AAPL", 150.0) is True
 
 
 # Market Data Service additional tests

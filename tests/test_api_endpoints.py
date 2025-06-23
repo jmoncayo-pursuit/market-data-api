@@ -1,6 +1,6 @@
 """Tests for API endpoints."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import ANY, Mock, patch
 
 from fastapi.testclient import TestClient
@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from app.api.endpoints.prices import MarketDataService
 from app.db.session import get_db
 from app.main import app
+from app.models.market_data import MarketData
 
 
 class TestPricesEndpoints:
@@ -16,12 +17,14 @@ class TestPricesEndpoints:
     def test_get_latest_price_success(self):
         """Test successful latest price retrieval."""
         with patch(
-            "app.api.endpoints.prices.MarketDataService.get_latest_market_data"
+            "app.api.endpoints.prices.MarketDataService.get_latest_price_static"
         ) as mock_service:
-            mock_market_data = Mock()
+            # Create a proper mock with spec to avoid serialization issues
+            mock_market_data = Mock(spec=MarketData)
             mock_market_data.symbol = "AAPL"
             mock_market_data.price = 150.0
-            mock_market_data.timestamp = "2023-01-01T00:00:00"
+            mock_market_data.timestamp = datetime.now(timezone.utc)
+            mock_market_data.source = "test"
             mock_service.return_value = mock_market_data
 
             client = TestClient(app)
@@ -38,7 +41,7 @@ class TestPricesEndpoints:
     def test_get_latest_price_not_found(self):
         """Test latest price retrieval when not found."""
         with patch(
-            "app.api.endpoints.prices.MarketDataService.get_latest_market_data"
+            "app.api.endpoints.prices.MarketDataService.get_latest_price_static"
         ) as mock_service:
             mock_service.return_value = None
 
@@ -54,7 +57,7 @@ class TestPricesEndpoints:
     def test_get_latest_price_exception(self):
         """Test latest price retrieval with exception."""
         with patch(
-            "app.api.endpoints.prices.MarketDataService.get_latest_market_data"
+            "app.api.endpoints.prices.MarketDataService.get_latest_price_static"
         ) as mock_service:
             mock_service.side_effect = Exception("Service error")
 
@@ -65,7 +68,7 @@ class TestPricesEndpoints:
             )
 
             assert response.status_code == 500
-            assert "Error retrieving latest price" in response.json()["detail"]
+            assert "Internal server error" in response.json()["detail"]
 
     def test_poll_prices_success(self):
         """Test successful price polling."""

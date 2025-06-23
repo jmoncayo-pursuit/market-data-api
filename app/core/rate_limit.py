@@ -132,19 +132,29 @@ async def init_rate_limiter(redis_url: str = "redis://localhost:6379/0"):
 
 
 async def rate_limit_middleware(
-    request: Request, max_requests: int = 100, window_seconds: int = 60
+    request: Request, 
+    max_requests: int = None, 
+    window_seconds: int = None
 ):
     """
     Rate limiting middleware for FastAPI.
 
     Args:
         request: FastAPI request object
-        max_requests: Maximum requests per window
-        window_seconds: Time window in seconds
+        max_requests: Maximum requests per window (uses settings if not provided)
+        window_seconds: Time window in seconds (uses settings if not provided)
 
     Raises:
         HTTPException: If rate limit exceeded
     """
+    from app.core.config import settings
+    
+    # Use settings defaults if not provided
+    if max_requests is None:
+        max_requests = settings.RATE_LIMIT_REQUESTS
+    if window_seconds is None:
+        window_seconds = settings.RATE_LIMIT_WINDOW
+    
     try:
         rate_limiter = get_rate_limiter()
 
@@ -197,11 +207,17 @@ async def rate_limit_middleware(
 
 
 # Rate limit decorator for specific endpoints
-def rate_limit(max_requests: int = 100, window_seconds: int = 60):
+def rate_limit(max_requests: int = None, window_seconds: int = None):
     """Apply rate limiting to specific endpoints."""
 
     def decorator(func):
         async def wrapper(*args, **kwargs):
+            from app.core.config import settings
+            
+            # Use settings defaults if not provided
+            limit_requests = max_requests if max_requests is not None else settings.RATE_LIMIT_REQUESTS
+            limit_window = window_seconds if window_seconds is not None else settings.RATE_LIMIT_WINDOW
+            
             # Extract request from kwargs or args
             request = None
             for arg in args:
@@ -216,7 +232,7 @@ def rate_limit(max_requests: int = 100, window_seconds: int = 60):
                         break
 
             if request:
-                await rate_limit_middleware(request, max_requests, window_seconds)
+                await rate_limit_middleware(request, limit_requests, limit_window)
 
             return await func(*args, **kwargs)
 

@@ -17,6 +17,8 @@ from app.main import app
 from app.models.market_data import MarketData
 from app.schemas.market_data import MarketDataCreate
 
+pytest_plugins = ("pytest_asyncio",)
+
 # Create in-memory SQLite database for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
@@ -26,6 +28,13 @@ engine = create_engine(
     poolclass=StaticPool,
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -154,6 +163,19 @@ class DummyMarketDataService:
     @staticmethod
     def get_latest_market_data(db, symbol: str):
         """Get dummy latest market data."""
+        return MarketData(
+            id=1,
+            symbol=symbol,
+            price=150.0,
+            volume=1000,
+            source="test",
+            raw_data=None,
+            timestamp=datetime.now(timezone.utc),
+        )
+
+    @staticmethod
+    def get_latest_price_static(db, symbol: str, provider=None):
+        """Get dummy latest price data (renamed static method)."""
         return MarketData(
             id=1,
             symbol=symbol,

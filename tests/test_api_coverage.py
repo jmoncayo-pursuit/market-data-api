@@ -99,15 +99,16 @@ class TestAPIPricesEndpointComprehensive:
     def test_get_latest_price_success(self):
         """Test GET /api/v1/prices/latest with success."""
         with patch(
-            "app.api.endpoints.prices.MarketDataService.get_latest_market_data"
+            "app.api.endpoints.prices.MarketDataService.get_latest_price_static"
         ) as mock_get:
+            from datetime import datetime, timezone
             mock_get.return_value = MarketData(
                 id=1,
                 symbol="AAPL",
                 price=150.0,
                 volume=1000,
                 source="test",
-                timestamp="2023-01-01T00:00:00Z",
+                timestamp=datetime.now(timezone.utc),
             )
             client = TestClient(app)
             response = client.get(
@@ -122,7 +123,7 @@ class TestAPIPricesEndpointComprehensive:
     def test_get_latest_price_not_found(self):
         """Test GET /api/v1/prices/latest when not found."""
         with patch(
-            "app.api.endpoints.prices.MarketDataService.get_latest_market_data"
+            "app.api.endpoints.prices.MarketDataService.get_latest_price_static"
         ) as mock_get:
             mock_get.return_value = None
             client = TestClient(app)

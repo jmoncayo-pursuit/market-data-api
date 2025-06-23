@@ -61,7 +61,8 @@ class RedisService:
 
         try:
             key = f"price:{symbol}"
-            await redis.setex(key, 300, str(price))  # Cache for 5 minutes
+            ttl = settings.CACHE_TTL
+            await redis.setex(key, ttl, str(price))  # Cache with configurable TTL
             return True
         except Exception as e:
             self._log_error("Redis err", e)

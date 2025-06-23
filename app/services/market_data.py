@@ -412,3 +412,23 @@ class MarketDataService:
             MarketData object or None if not found
         """
         return db.query(MarketData).filter(MarketData.id == market_data_id).first()
+
+    @staticmethod
+    def get_latest_price_static(db: Session, symbol: str, provider: Optional[str] = None) -> Optional[MarketData]:
+        """
+        Get the latest price for a specific symbol, optionally filtered by provider.
+
+        Args:
+            db: Database session
+            symbol: Stock symbol
+            provider: Optional data provider filter
+
+        Returns:
+            Latest market data record or None if not found
+        """
+        query = db.query(MarketData).filter(MarketData.symbol == symbol)
+        
+        if provider:
+            query = query.filter(MarketData.source == provider)
+            
+        return query.order_by(MarketData.timestamp.desc()).first()
