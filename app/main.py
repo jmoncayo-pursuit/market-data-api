@@ -10,7 +10,7 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     Counter,
@@ -20,6 +20,7 @@ from prometheus_client import (
 )
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import DataError, IntegrityError
 
 from app.api.endpoints import prices
 from app.core.audit import setup_audit_logging
@@ -335,3 +336,11 @@ async def get_prices(
     except Exception as e:
         logger.error(f"Error retrieving prices: {e}")
         raise HTTPException(status_code=500, detail="Error retrieving prices")
+
+
+@app.exception_handler((DataError, IntegrityError))
+async def sqlalchemy_exception_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=422,
+        content={"detail": f"Invalid input data: {str(exc)}"},
+    )
