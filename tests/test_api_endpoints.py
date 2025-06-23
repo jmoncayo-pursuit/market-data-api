@@ -229,7 +229,6 @@ class TestPricesEndpoints:
             )
         db_session.commit()
 
-        # Override the dependency to use our test session
         def override_get_db():
             try:
                 yield db_session
@@ -246,9 +245,10 @@ class TestPricesEndpoints:
             )
             assert response.status_code == 200
             data = response.json()
-            assert data["value"] == 152.0
+            assert data["moving_average"] == 152.0
             assert data["symbol"] == "AAPL"
             assert data["window_size"] == 5
+            assert "timestamp" in data
         finally:
             app.dependency_overrides.clear()
 
@@ -264,6 +264,7 @@ class TestPricesEndpoints:
                 headers={"Authorization": "Bearer demo-api-key-123"},
             )
             assert response.status_code == 404
+            assert "No data found for symbol AAPL" in response.json()["detail"]
 
     def test_calculate_moving_average_exception(self):
         """Test moving average calculation with exception."""

@@ -48,7 +48,7 @@ class MovingAverageResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
     symbol: str
-    value: float
+    moving_average: float
     timestamp: datetime
     window_size: int
 

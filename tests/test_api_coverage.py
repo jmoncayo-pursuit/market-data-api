@@ -353,9 +353,10 @@ class TestAPIPricesEndpointComprehensive:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["value"] == 152.0
+        assert data["moving_average"] == 152.0
         assert data["symbol"] == "AAPL"
         assert data["window_size"] == 5
+        assert "timestamp" in data
 
     def test_get_moving_average_insufficient_data(self):
         """Test GET /api/v1/prices/{symbol}/moving-average with insufficient data."""
@@ -369,7 +370,7 @@ class TestAPIPricesEndpointComprehensive:
                 headers=get_auth_headers(),
             )
             assert response.status_code == 404
-            mock_calc.assert_called_once_with(ANY, "AAPL", 5)
+            assert "No data found for symbol AAPL" in response.json()["detail"]
 
     def test_get_moving_average_invalid_window(self):
         """Test GET /api/v1/prices/{symbol}/moving-average with invalid window."""

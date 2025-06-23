@@ -502,11 +502,14 @@ async def get_moving_average(
                 status_code=404,
                 detail=f"No data found for symbol {symbol}",
             )
+        # Get the latest timestamp for the symbol
+        latest_timestamp = MarketDataService.get_latest_timestamp(db, symbol)
+        timestamp = latest_timestamp if latest_timestamp else datetime.now().isoformat()
         return {
             "symbol": symbol,
             "moving_average": result,
             "window_size": window,
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": timestamp,
         }
     except HTTPException:
         logger.exception("HTTPException raised in moving average endpoint")

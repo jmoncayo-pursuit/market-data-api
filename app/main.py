@@ -5,6 +5,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -216,12 +217,16 @@ async def get_moving_average(
         if moving_average is None:
             raise HTTPException(
                 status_code=404,
-                detail=f"No data available for symbol {symbol}",
+                detail=f"No data found for symbol {symbol}",
             )
+        # Get the latest timestamp for the symbol
+        latest_timestamp = MarketDataService.get_latest_timestamp(db, symbol)
+        timestamp = latest_timestamp if latest_timestamp else datetime.now().isoformat()
         return {
             "symbol": symbol,
             "moving_average": moving_average,
             "window": window,
+            "timestamp": timestamp,
         }
     except HTTPException:
         raise
