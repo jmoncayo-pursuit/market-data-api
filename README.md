@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/jmoncayo-pursuit/market-data-api/graph/badge.svg?token=GK6cjtooDF)](https://codecov.io/gh/jmoncayo-pursuit/market-data-api)
+
 # Market Data API
 
 A high-performance, production-ready Market Data API built with FastAPI, PostgreSQL, Redis, and Kafka. Features comprehensive monitoring, rate limiting, and real-time data processing capabilities.
