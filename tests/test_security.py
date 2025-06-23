@@ -170,6 +170,83 @@ class TestInputValidation:
         # Should be handled by Pydantic validation
         assert response.status_code in [201, 422]
 
+    def test_symbol_length_validation_prevents_db_errors(self):
+        """Test that symbol length validation prevents database constraint errors."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        
+        client = TestClient(app)
+        
+        # Test with symbol exactly at the limit (10 characters)
+        valid_data = {
+            "symbol": "A" * 10,  # Exactly 10 characters
+            "price": 150.0,
+            "volume": 1000,
+            "source": "test"
+        }
+        
+        response = client.post("/api/v1/prices/", json=valid_data, headers={"X-API-Key": "test-key"})
+        # Should either succeed (201) or fail with validation error (422), but never 500
+        assert response.status_code in [201, 422], f"Expected 201 or 422, got {response.status_code}"
+        
+        # Test with symbol over the limit (11 characters)
+        invalid_data = {
+            "symbol": "A" * 11,  # Over 10 character limit
+            "price": 150.0,
+            "volume": 1000,
+            "source": "test"
+        }
+        
+        response = client.post("/api/v1/prices/", json=invalid_data, headers={"X-API-Key": "test-key"})
+        # Should fail with validation error, not database error
+        assert response.status_code == 422, f"Expected 422 for oversize symbol, got {response.status_code}"
+        # Only check for the Pydantic error message
+        assert (
+            "String should have at most 10 characters" in response.text
+            or "string should have at most 10 characters" in response.text
+        )
+        
+        # Test with extremely long symbol (should be caught by Pydantic validation)
+        extremely_long_data = {
+            "symbol": "A" * 10000,  # Extremely long
+            "price": 150.0,
+            "volume": 1000,
+            "source": "test"
+        }
+        
+        response = client.post("/api/v1/prices/", json=extremely_long_data, headers={"X-API-Key": "test-key"})
+        # Should fail with validation error, never 500
+        assert response.status_code == 422, f"Expected 422 for extremely long symbol, got {response.status_code}"
+        assert (
+            "String should have at most 10 characters" in response.text
+            or "string should have at most 10 characters" in response.text
+        )
+
+    def test_database_error_handling_returns_422_not_500(self):
+        """Test that database constraint violations return 422 instead of 500."""
+        from fastapi.testclient import TestClient
+        from app.main import app
+        from unittest.mock import patch, MagicMock
+        from sqlalchemy.exc import DataError
+        
+        client = TestClient(app)
+        
+        # Mock the database to simulate a constraint violation
+        with patch('app.services.market_data.MarketDataService.create_market_data') as mock_create:
+            mock_create.side_effect = DataError("value too long for type character varying(10)", None, None)
+            
+            data = {
+                "symbol": "VALID",  # Valid symbol
+                "price": 150.0,
+                "volume": 1000,
+                "source": "test"
+            }
+            
+            response = client.post("/api/v1/prices/", json=data, headers={"X-API-Key": "test-key"})
+            # Should return 422 for database constraint violations, not 500
+            assert response.status_code == 422, f"Expected 422 for database error, got {response.status_code}"
+            assert "Invalid input data" in response.text
+
 
 class TestRateLimiting:
     """Test rate limiting functionality."""
@@ -306,6 +383,74 @@ class TestContentSecurity:
         response = self.client.post("/api/v1/prices/", json=large_data, headers=self.headers)
         # Should be rejected or handled gracefully
         assert response.status_code in [201, 422, 413]
+
+    def test_symbol_length_validation_prevents_db_errors(self):
+        """Test that symbol length validation prevents database constraint errors."""
+        # Test with symbol exactly at the limit (10 characters)
+        valid_data = {
+            "symbol": "A" * 10,  # Exactly 10 characters
+            "price": 150.0,
+            "volume": 1000,
+            "source": "test"
+        }
+        
+        response = self.client.post("/api/v1/prices/", json=valid_data, headers=self.headers)
+        # Should either succeed (201) or fail with validation error (422), but never 500
+        assert response.status_code in [201, 422], f"Expected 201 or 422, got {response.status_code}"
+        
+        # Test with symbol over the limit (11 characters)
+        invalid_data = {
+            "symbol": "A" * 11,  # Over 10 character limit
+            "price": 150.0,
+            "volume": 1000,
+            "source": "test"
+        }
+        
+        response = self.client.post("/api/v1/prices/", json=invalid_data, headers=self.headers)
+        # Should fail with validation error, not database error
+        assert response.status_code == 422, f"Expected 422 for oversize symbol, got {response.status_code}"
+        # Only check for the Pydantic error message
+        assert (
+            "String should have at most 10 characters" in response.text
+            or "string should have at most 10 characters" in response.text
+        )
+        
+        # Test with extremely long symbol (should be caught by Pydantic validation)
+        extremely_long_data = {
+            "symbol": "A" * 10000,  # Extremely long
+            "price": 150.0,
+            "volume": 1000,
+            "source": "test"
+        }
+        
+        response = self.client.post("/api/v1/prices/", json=extremely_long_data, headers=self.headers)
+        # Should fail with validation error, never 500
+        assert response.status_code == 422, f"Expected 422 for extremely long symbol, got {response.status_code}"
+        assert (
+            "String should have at most 10 characters" in response.text
+            or "string should have at most 10 characters" in response.text
+        )
+
+    def test_database_error_handling_returns_422_not_500(self):
+        """Test that database constraint violations return 422 instead of 500."""
+        from unittest.mock import patch
+        from sqlalchemy.exc import DataError
+        
+        # Mock the database to simulate a constraint violation
+        with patch('app.services.market_data.MarketDataService.create_market_data') as mock_create:
+            mock_create.side_effect = DataError("value too long for type character varying(10)", None, None)
+            
+            data = {
+                "symbol": "VALID",  # Valid symbol
+                "price": 150.0,
+                "volume": 1000,
+                "source": "test"
+            }
+            
+            response = self.client.post("/api/v1/prices/", json=data, headers=self.headers)
+            # Should return 422 for database constraint violations, not 500
+            assert response.status_code == 422, f"Expected 422 for database error, got {response.status_code}"
+            assert "Invalid input data" in response.text
 
 
 class TestLoggingAndMonitoring:
