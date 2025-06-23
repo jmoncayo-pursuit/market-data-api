@@ -10,6 +10,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from prometheus_client import Counter, Gauge
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import DataError, IntegrityError
 
 from app.core.auth import (
     require_admin_permission,
@@ -169,6 +170,12 @@ async def create_market_data(
         symbols_tracked.set(len(MarketDataService.get_all_symbols(db)))
 
         return result
+    except (DataError, IntegrityError) as e:
+        # Handle database constraint violations (e.g., symbol too long)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid input data: {str(e)}"
+        )
     except HTTPException as e:
         if e.status_code == 422:
             raise

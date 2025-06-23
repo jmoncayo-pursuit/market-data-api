@@ -78,7 +78,7 @@ class DeleteAllResponse(BaseModel):
 class MarketDataBase(BaseModel):
     """Base schema for market data."""
 
-    symbol: str = Field(..., min_length=1, description="Stock symbol")
+    symbol: str = Field(..., min_length=1, max_length=10, description="Stock symbol")
     price: float = Field(..., ge=0, description="Stock price")
     volume: int = Field(..., gt=0, description="Trading volume")
     source: str = Field(..., description="Data source")
