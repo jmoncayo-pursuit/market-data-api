@@ -1,0 +1,39 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0.5%
+    patch:
+      default:
+        target: auto
+        threshold: 0.5%
+
+comment:
+  layout: "reach, diff, flags, files"
+  behavior: default
+  require_changes: false
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+codecov:
+  require_ci_to_pass: no
+  notify:
+    wait_for_ci: no
+  branch: main
+
+# Add more robust configuration
+ignore:
+  - "tests/"
+  - "**/__pycache__/"
+  - "**/*.pyc"
+  - "setup.py"
+  - "alembic/"
+  - "scripts/"
+  - "*.md"

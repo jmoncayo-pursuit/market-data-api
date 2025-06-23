@@ -1,0 +1,19 @@
+[run]
+source = app
+omit =
+    */tests/*
+    */migrations/*
+    */__init__.py
+    */alembic/*
+    */scripts/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    pass
+    raise ImportError
+    except ImportError:
+    def main()

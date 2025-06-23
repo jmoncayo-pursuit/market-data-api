@@ -1,0 +1,228 @@
+{
+  "info": {
+    "name": "Market Data Service",
+    "description": "Collection for testing the market data microservice pipeline",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Market Data",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", ""]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"symbol\": \"AAPL\",\n    \"price\": 123.45,\n    \"volume\": 1000,\n    \"source\": \"test_source\"\n}",
+          "options": {"raw": {"language": "json"}}
+        },
+        "description": "Creates market data for testing the Get Latest Price endpoint"
+      }
+    },
+    {
+      "name": "Get Latest Price",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/latest?symbol=AAPL",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", "latest"],
+          "query": [
+            {"key": "symbol", "value": "AAPL"}
+          ]
+        },
+        "description": "Fetches the latest price for a symbol and stores it in the database"
+      }
+    },
+    {
+      "name": "Create Polling Job",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/poll",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", "poll"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"symbols\": [\"AAPL\", \"MSFT\"],\n    \"interval\": 60\n}",
+          "options": {"raw": {"language": "json"}}
+        },
+        "description": "Creates a polling job to fetch prices at regular intervals"
+      }
+    },
+    {
+      "name": "List Polling Jobs",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/poll",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", "poll"]
+        },
+        "description": "Lists all active polling jobs"
+      }
+    },
+    {
+      "name": "Get Polling Job Status",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/poll/{{job_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", "poll", "{{job_id}}"]
+        },
+        "description": "Gets the status of a specific polling job"
+      }
+    },
+    {
+      "name": "Delete Polling Job",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/poll/{{job_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", "poll", "{{job_id}}"]
+        },
+        "description": "Deletes a specific polling job"
+      }
+    },
+    {
+      "name": "Delete All Polling Jobs",
+      "request": {
+        "method": "POST",
+        "url": {
+          "raw": "{{base_url}}/api/v1/prices/delete-all-polling-jobs",
+          "host": ["{{base_url}}"],
+          "path": ["api", "v1", "prices", "delete-all-polling-jobs"]
+        },
+        "description": "Deletes all active polling jobs"
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Checks the health of the service"
+      }
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {"type": "text/javascript", "exec": [""]}
+    },
+    {
+      "listen": "test",
+      "script": {"type": "text/javascript", "exec": [
+        "// Test for Create Market Data",
+        "if (pm.info.requestName === \"Create Market Data\") {",
+        "    pm.test(\"Status code is 201\", function () {",
+        "        pm.response.to.have.status(201);",
+        "    });",
+        "    pm.test(\"Response has required fields\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response).to.have.property('symbol');",
+        "        pm.expect(response).to.have.property('price');",
+        "        pm.expect(response).to.have.property('id');",
+        "    });",
+        "}",
+        "",
+        "// Test for Get Latest Price",
+        "if (pm.info.requestName === \"Get Latest Price\") {",
+        "    pm.test(\"Status code is 200\", function () {",
+        "        pm.response.to.have.status(200);",
+        "    });",
+        "    pm.test(\"Response has required fields\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response).to.have.property('symbol');",
+        "        pm.expect(response).to.have.property('price');",
+        "        pm.expect(response).to.have.property('timestamp');",
+        "    });",
+        "}",
+        "",
+        "// Test for Create Polling Job",
+        "if (pm.info.requestName === \"Create Polling Job\") {",
+        "    pm.test(\"Status code is 202\", function () {",
+        "        pm.response.to.have.status(202);",
+        "    });",
+        "    pm.test(\"Response has job_id\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response).to.have.property('job_id');",
+        "        // Store job_id for later use",
+        "        pm.environment.set(\"job_id\", response.job_id);",
+        "    });",
+        "}",
+        "",
+        "// Test for List Polling Jobs",
+        "if (pm.info.requestName === \"List Polling Jobs\") {",
+        "    pm.test(\"Status code is 200\", function () {",
+        "        pm.response.to.have.status(200);",
+        "    });",
+        "    pm.test(\"Response has jobs array\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response).to.have.property('jobs');",
+        "        pm.expect(response.jobs).to.be.an('array');",
+        "    });",
+        "}",
+        "",
+        "// Test for Get Polling Job Status",
+        "if (pm.info.requestName === \"Get Polling Job Status\") {",
+        "    pm.test(\"Status code is 200\", function () {",
+        "        pm.response.to.have.status(200);",
+        "    });",
+        "    pm.test(\"Response has required fields\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response).to.have.property('job_id');",
+        "        pm.expect(response).to.have.property('status');",
+        "        pm.expect(response).to.have.property('config');",
+        "    });",
+        "}",
+        "",
+        "// Test for Delete Polling Job",
+        "if (pm.info.requestName === \"Delete Polling Job\") {",
+        "    pm.test(\"Status code is 200\", function () {",
+        "        pm.response.to.have.status(200);",
+        "    });",
+        "    pm.test(\"Response indicates job is completed\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response.status).to.equal(\"completed\");",
+        "    });",
+        "}",
+        "",
+        "// Test for Delete All Polling Jobs",
+        "if (pm.info.requestName === \"Delete All Polling Jobs\") {",
+        "    pm.test(\"Status code is 200\", function () {",
+        "        pm.response.to.have.status(200);",
+        "    });",
+        "    pm.test(\"Response has deleted_count\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response).to.have.property('deleted_count');",
+        "    });",
+        "}",
+        "",
+        "// Test for Health Check",
+        "if (pm.info.requestName === \"Health Check\") {",
+        "    pm.test(\"Status code is 200\", function () {",
+        "        pm.response.to.have.status(200);",
+        "    });",
+        "    pm.test(\"Service is healthy\", function () {",
+        "        const response = pm.response.json();",
+        "        pm.expect(response.status).to.equal(\"healthy\");",
+        "    });",
+        "}"
+      ]}
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8000", "type": "string"}
+  ]
+}

@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "market_data_api"
+    static_configs:
+      # Use 'api:8000' for Docker Compose networking
+      - targets: ["api:8000"]
+    metrics_path: "/metrics"
