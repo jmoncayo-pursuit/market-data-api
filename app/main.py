@@ -300,6 +300,12 @@ async def create_price(
         result = MarketDataService.create_market_data(db, price_data)
 
         return {"message": "Price created successfully", "id": str(result.id)}
+    except (DataError, IntegrityError) as e:
+        # Handle database constraint violations (e.g., symbol too long)
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid input data: {str(e)}"
+        )
     except Exception as e:
         logger.error(f"Error creating price: {e}")
         raise HTTPException(status_code=500, detail="Error creating price")
