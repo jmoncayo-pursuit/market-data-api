@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/jmoncayo-pursuit/market-data-api/graph/badge.svg?token=GK6cjtooDF)](https://codecov.io/gh/jmoncayo-pursuit/market-data-api)
+[![CI/CD Pipeline](https://github.com/jmoncayo-pursuit/market-data-api/actions/workflows/ci.yml/badge.svg)](https://github.com/jmoncayo-pursuit/market-data-api/actions/workflows/ci.yml)
 
 # Market Data API
 
